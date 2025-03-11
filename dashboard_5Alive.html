@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campaign Dashboard</title>
+  <link rel="stylesheet" href="finale.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script>
+    // Token validation for protected pages
+    function checkLogin() {
+      const token = localStorage.getItem('auth_token');
+      if (!token || isTokenExpired()) {
+        window.location.href = 'index.html';
+      }
+    }
+    checkLogin();
+  </script>
+</head>
+<body>
+  <div class="dashboard">
+    <h1>Campaign Dashboard</h1>
+
+    <!-- Date Picker -->
+    <div class="date-picker">
+      <label for="dateRange">Select Date Range:</label>
+      <input type="text" id="dateRange" placeholder="Pick a date range">
+    </div>
+
+    <!-- Top Row Metrics -->
+    <div class="metrics top-row">
+      <div class="metric-card">
+        <h3>Impressions</h3>
+        <p id="impressions">0</p>
+      </div>
+      <div class="metric-card">
+        <h3>Clicks</h3>
+        <p id="clicks">0</p>
+      </div>
+      <div class="metric-card">
+        <h3>CTR</h3>
+        <p id="ctr">0%</p>
+      </div>
+      <div class="metric-card">
+        <h3>Reach</h3>
+        <p id="reach">0</p>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts">
+      <div class="chart-card">
+        <canvas id="impressionsChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <canvas id="clicksChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Middle Row Metrics -->
+    <div class="metrics middle-row">
+      <div class="metric-card">
+        <h3>Viewability Rate</h3>
+        <p id="viewabilityRate">0%</p>
+      </div>
+      <div class="metric-card">
+        <h3>Engagement Rate</h3>
+        <p id="engagementRate">0%</p>
+      </div>
+      <div class="metric-card">
+        <h3>Spend</h3>
+        <p id="spend">₦0</p>
+      </div>
+      <div class="metric-card">
+        <h3>Campaign Status</h3>
+        <p id="campaignStatus">LIVE</p>
+      </div>
+    </div>
+
+    <!-- Average Metrics Row -->
+    <div class="metrics average-metrics">
+      <div class="metric-card">
+        <h3>Average CPM</h3>
+        <p id="avgCpm">₦0</p>
+      </div>
+      <div class="metric-card">
+        <h3>Average CPC</h3>
+        <p id="avgCpc">₦0</p>
+      </div>
+      <div class="metric-card">
+        <h3>Billed CPM</h3>
+        <p id="billedCpm">₦0</p>
+      </div>
+    </div>
+
+    <!-- Video Metrics Section -->
+    <h2>Video Metrics</h2>
+    <div class="metrics video-metrics">
+      <div class="metric-card">
+        <h3>Video Start</h3>
+        <p id="videoStart">0</p>
+      </div>
+      <div class="metric-card">
+        <h3>1st Quartile</h3>
+        <p id="firstQuartile">0</p>
+      </div>
+      <div class="metric-card">
+        <h3>Midpoint</h3>
+        <p id="midpoint">0</p>
+      </div>
+      <div class="metric-card">
+        <h3>3rd Quartile</h3>
+        <p id="thirdQuartile">0</p>
+      </div>
+    </div>
+
+    <div class="metrics video-metrics">
+      <div class="metric-card">
+        <h3>Completion</h3>
+        <p id="completion">0</p>
+      </div>
+      <div class="metric-card">
+        <h3>Pause</h3>
+        <p id="pause">0</p>
+      </div>
+      <div class="metric-card">
+        <h3>Unmute</h3>
+        <p id="unmute">0</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_ID = '1gVUYypveGXRqL7DLHKNXI4FpAMLnX7lGQqvZFi9Vhbg';
+    const API_KEY = 'AIzaSyDRo0I6TPLi_AXhM4w_Ruc1u1IFv-ps7D0';
+    const SHEET_RANGE = 'Sheet1!A:Q';
+
+    let globalData = [];
+    let selectedDateRange = null;
+
+    // Fetch data from the Google Sheet
+    async function fetchData() {
+      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_RANGE}?key=${API_KEY}`);
+      const data = await response.json();
+      return data.values;
+    }
+
+    // Update metrics and charts
+    function updateDashboard(data) {
+  const filteredData = data.slice(1); // Exclude header row
+
+  // Filter data by selected date range
+  const filteredByDate = selectedDateRange
+    ? filteredData.filter(row => {
+        const rowDate = new Date(row[0]);
+        return rowDate >= selectedDateRange.start && rowDate <= selectedDateRange.end;
+      })
+    : filteredData;
+
+  // Initialize totals
+  const totals = {
+    impressions: 0,
+    clicks: 0,
+    reach: 0,
+    spend: 0,
+    viewabilityRate: 0,
+    engagementRate: 0,
+    videoStart: 0,
+    firstQuartile: 0,
+    midpoint: 0,
+    thirdQuartile: 0,
+    completion: 0,
+    pause: 0,
+    unmute: 0
+  };
+
+  // Calculate totals from filtered data
+  filteredByDate.forEach(row => {
+    totals.impressions += parseInt(row[1] || 0, 10) || 0;
+    totals.clicks += parseInt(row[2] || 0, 10) || 0;
+    totals.reach += parseInt(row[5] || 0, 10) || 0;
+    totals.spend += parseFloat(row[8] || 0) || 0;
+    totals.viewabilityRate += parseFloat(row[6] || 0) || 0;
+    totals.engagementRate += parseFloat(row[7] || 0) || 0;
+    totals.videoStart += parseInt(row[10] || 0, 10) || 0;
+    totals.firstQuartile += parseInt(row[11] || 0, 10) || 0;
+    totals.midpoint += parseInt(row[12] || 0, 10) || 0;
+    totals.thirdQuartile += parseInt(row[13] || 0, 10) || 0;
+    totals.completion += parseInt(row[14] || 0, 10) || 0;
+    totals.pause += parseInt(row[15] || 0, 10) || 0;
+    totals.unmute += parseInt(row[16] || 0, 10) || 0;
+  });
+
+  // Update the metrics in the UI
+  document.getElementById('impressions').textContent = totals.impressions || 0;
+  document.getElementById('clicks').textContent = totals.clicks || 0;
+  document.getElementById('ctr').textContent = (totals.impressions > 0 && totals.clicks > 0) ? ((totals.clicks / totals.impressions) * 100).toFixed(2) + '%' : '0%';
+  document.getElementById('reach').textContent = totals.reach || 0;
+  document.getElementById('spend').textContent = `₦${totals.spend.toFixed(2) || 0}`;
+  document.getElementById('viewabilityRate').textContent = (filteredByDate.length > 0 ? (totals.viewabilityRate / filteredByDate.length).toFixed(2) + '%' : '0%');
+  document.getElementById('engagementRate').textContent = (filteredByDate.length > 0 ? (totals.engagementRate / filteredByDate.length).toFixed(2) + '%' : '0%');
+  document.getElementById('videoStart').textContent = totals.videoStart || 0;
+  document.getElementById('firstQuartile').textContent = totals.firstQuartile || 0;
+  document.getElementById('midpoint').textContent = totals.midpoint || 0;
+  document.getElementById('thirdQuartile').textContent = totals.thirdQuartile || 0;
+  document.getElementById('completion').textContent = totals.completion || 0;
+  document.getElementById('pause').textContent = totals.pause || 0;
+  document.getElementById('unmute').textContent = totals.unmute || 0;
+
+  // Calculate additional metrics
+  const avgCpm = totals.impressions > 0 ? ((totals.spend / totals.impressions) * 1000).toFixed(2) : 0;
+  const avgCpc = totals.clicks > 0 ? (totals.spend / totals.clicks).toFixed(2) : 0;
+  const billedCpm = '500'; // Keep as text.
+
+  document.getElementById('avgCpm').textContent = `₦${avgCpm || 0}`;
+  document.getElementById('avgCpc').textContent = `₦${avgCpc || 0}`;
+  document.getElementById('billedCpm').textContent = `₦${billedCpm || 0}`;
+
+  // Update charts
+  updateCharts(filteredByDate);
+}
+
+    function updateCharts(filteredData) {
+      const dates = [];
+      const impressionsData = [];
+      const clicksData = [];
+
+      filteredData.forEach(row => {
+        const date = new Date(row[0]).toLocaleDateString();
+        dates.push(date);
+        impressionsData.push(parseInt(row[1] || 0, 10));
+        clicksData.push(parseInt(row[2] || 0, 10));
+      });
+
+      const impressionsChart = document.getElementById('impressionsChart');
+      new Chart(impressionsChart, {
+        type: 'bar',
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'Impressions',
+            data: impressionsData,
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      const clicksChart = document.getElementById('clicksChart');
+      new Chart(clicksChart, {
+        type: 'bar',
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'Clicks',
+            data: clicksData,
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    // Initialize date picker
+    flatpickr('#dateRange', {
+      mode: 'range',
+      dateFormat: 'Y-m-d',
+      onChange: function(selectedDates) {
+        if (selectedDates.length === 2) {
+          selectedDateRange = {
+            start: selectedDates[0],
+            end: selectedDates[1]
+          };
+        }
+      }
+    });
+
+    // Fetch data and update dashboard every second
+    setInterval(async () => {
+      const data = await fetchData();
+      updateDashboard(data);
+    }, 1000);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=!, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="finale.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <h1>Campaign Dashboard</h1>
+    
+        <!-- Date Picker -->
+        <div class="date-picker">
+          <label for="dateRange">Select Date Range:</label>
+          <input type="text" id="dateRange" placeholder="Pick a date range">
+        </div>
+    
+        <!-- Top Row Metrics -->
+        <div class="metrics top-row">
+          <div class="metric-card">
+            <h3>Impressions</h3>
+            <p id="impressions">0</p>
+          </div>
+          <div class="metric-card">
+            <h3>Clicks</h3>
+            <p id="clicks">0</p>
+          </div>
+          <div class="metric-card">
+            <h3>CTR</h3>
+            <p id="ctr">0%</p>
+          </div>
+          <div class="metric-card">
+            <h3>Reach</h3>
+            <p id="reach">0</p>
+          </div>
+        </div>
+    
+        <!-- Charts Row -->
+        <div class="charts">
+          <div class="chart-card">
+            <canvas id="impressionsChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <canvas id="clicksChart"></canvas>
+          </div>
+        </div>
+    
+        <!-- Middle Row Metrics -->
+        <div class="metrics middle-row">
+          <div class="metric-card">
+            <h3>Viewability Rate</h3>
+            <p id="viewabilityRate">0%</p>
+          </div>
+          <div class="metric-card">
+            <h3>Engagement Rate</h3>
+            <p id="engagementRate">0%</p>
+          </div>
+          <div class="metric-card">
+            <h3>Spend</h3>
+            <p id="spend">₦0</p>
+          </div>
+          <div class="metric-card">
+            <h3>Campaign Status</h3>
+            <p id="campaignStatus">LIVE</p>
+          </div>
+        </div>
+    
+        <!-- Average Metrics Row -->
+        <div class="metrics average-metrics">
+          <div class="metric-card">
+            <h3>Average CPM</h3>
+            <p id="avgCpm">₦0</p>
+          </div>
+          <div class="metric-card">
+            <h3>Average CPC</h3>
+            <p id="avgCpc">₦0</p>
+          </div>
+          <div class="metric-card">
+            <h3>Billed CPM</h3>
+            <p id="billedCpm">₦0</p>
+          </div>
+        </div>
+    
+        <!-- Video Metrics Section -->
+        <h2>Video Metrics</h2>
+        <div class="metrics video-metrics">
+          <div class="metric-card">
+            <h3>Video Start</h3>
+            <p id="videoStart">0</p>
+          </div>
+          <div class="metric-card">
+            <h3>1st Quartile</h3>
+            <p id="firstQuartile">0</p>
+          </div>
+          <div class="metric-card">
+            <h3>Midpoint</h3>
+            <p id="midpoint">0</p>
+          </div>
+          <div class="metric-card">
+            <h3>3rd Quartile</h3>
+            <p id="thirdQuartile">0</p>
+          </div>
+        </div>
+    
+        <div class="metrics video-metrics">
+          <div class="metric-card">
+            <h3>Completion</h3>
+            <p id="completion">0</p>
+          </div>
+          <div class="metric-card">
+            <h3>Pause</h3>
+            <p id="pause">0</p>
+          </div>
+          <div class="metric-card">
+            <h3>Unmute</h3>
+            <p id="unmute">0</p>
+          </div>
+          <div class="metric-card">
+            <h3>ViewableImpressions</h3>
+            <p id="viewableImpressions">0</p>
+          </div>
+        </div>
+      </div>
+
+</body>
+<script>
+
+async function fetchDailyData() {
+    try {
+        const response = await fetch(`https://zabira-serverupdate-4.onrender.com/data-by-date`);
+        const data = await response.json();
+        console.log("Fetched data:", data);
+
+        if (data && data.length > 0) {
+            localStorage.setItem('chartData', JSON.stringify(data));
+            updateCharts(data); // Pass the entire array
+        } else {
+            console.warn("No data available");
+            updateCharts([]);
+        }
+    } catch (err) {
+        console.error("Error fetching daily data:", err);
+        const cachedData = localStorage.getItem('chartData');
+        if (cachedData) {
+            updateCharts(JSON.parse(cachedData));
+        }
+    }
+}
+
+
+//Initialize flatpickr
+
+// Initialize Flatpickr
+/*const datePicker = flatpickr("#datePicker", {
+    dateFormat: "Y-m-d", // Format for display
+    defaultDate: new Date(), // Set default date to today
+    onChange: async function(selectedDates, dateStr) {
+        console.log("Selected Date:", dateStr);
+
+        // Fetch data for the selected date
+        const dailyData = await fetchDailyData(dateStr);
+
+        if (dailyData) {
+            // Update the charts with the fetched data
+            updateCharts(dailyData);
+        } else {
+            console.log("No data found for the selected date.");
+        }
+    }
+});*/
+
+
+
+
+
+//render charts 
+
+// Initialize Chart.js instances
+const impressionCtx = document.getElementById('impressionsChart').getContext('2d');
+const clicksCtx = document.getElementById('clicksChart').getContext('2d');
+
+let impressionsChart = new Chart(impressionCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Impressions'],
+        datasets: [{
+            label: 'Impressions',
+            data: [0],
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+let clicksChart = new Chart(clicksCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Clicks'],
+        datasets: [{
+            label: 'Clicks',
+            data: [0],
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Function to update the charts with new data
+/*function updateCharts(dailyData) {
+    // Update the impression chart
+    impressionsChart.data.datasets[0].data = [dailyData.imp || 0];
+    impressionsChart.update();
+
+    // Update the clicks chart
+    clicksChart.data.datasets[0].data = [dailyData.clicks || 0];
+    clicksChart.update();
+}
+*/
+
+
+function updateCharts(dailyData) {
+    const labels = dailyData.map(record => record.date); // Use the date as the label
+   
+    const impressions = dailyData.map(record => record.imp || 0); // Get impressions
+    const clicks = dailyData.map(record => record.clicks || 0);   // Get clicks
+
+    // Update the impression chart
+    impressionsChart.data.labels = labels;
+    impressionsChart.data.datasets[0].data = impressions;
+    impressionsChart.update();
+
+    // Update the clicks chart
+    clicksChart.data.labels = labels;
+    clicksChart.data.datasets[0].data = clicks;
+    clicksChart.update();
+}
+
+
+
+const datePicker = flatpickr("#dateRange", {
+   
+    dateFormat: "Y-m-d", // Format for display
+    defaultDate: new Date(), // Set default date to today
+    onChange: async function (selectedDates, dateStr) {
+        console.log("Selected Date:", dateStr);
+        console.log("Selected Date (Date Object):", selectedDates[0]);
+        if (!dateStr) {
+            console.error("Date string is undefined or empty.");
+            return;
+        }
+        // Fetch data for the selected date
+        const dailyData = await fetchDailyData(dateStr);
+
+        if (dailyData) {
+            // Update the charts with the fetched data
+            updateCharts(dailyData);
+        } else {
+            console.log("No data found for the selected date.");
+        }
+    }
+});
+
+
+function cachedData(data){
+  localStorage.setItem('cachedMetrics', JSON.stringify(data))
+}
+
+function loadCacheddata(){
+  const cached = localStorage.getItem('cachedMetrics')
+  return cached ? JSON.parse(cached) : null
+}
+async function fetchAggregatedData() {
+    try {
+        const response = await fetch('https://zabira-serverupdate-4.onrender.com/aggregate-data');
+        if (!response.ok) {
+            throw new Error('Failed to fetch data');
+        }
+        const data = await response.json();
+        console.log(data)
+        displayMetrics(data);
+        cachedData(data)
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        const cachedData = loadCacheddata()
+        if(cachedData){
+          displayMetrics(cachedData)
+          alert('showing cached data live data unavailable')
+        }else{
+          alert('Failed to load metrics. No cahed data available')
+        }
+    }
+}
+
+function displayMetrics(metrics) {
+    // Update the middle row metrics
+    const formatNumber = (num) => (num !== undefined && num !== null ? num.toLocaleString() : '0');
+    document.getElementById('impressions').textContent = formatNumber(metrics.totalImp);
+    document.getElementById('clicks').textContent = formatNumber(metrics.totalClicks);
+    document.getElementById('reach').textContent = formatNumber(metrics.totalReach);
+    let totalCTR = metrics.totalClicks/metrics.totalImp
+    document.getElementById('ctr').textContent = `${(totalCTR).toFixed(2)}%`;
+
+    document.getElementById('viewableImpressions').textContent = (metrics.totalViewableImpressions);
+    let viewabilityRate = metrics.totalViewableImpressions/metrics.totalImp
+    document.getElementById('viewabilityRate').textContent = `${(viewabilityRate).toFixed(2)}`;
+    //let engagementRate = (totalUnmute + totalClicks + totalPause + totalVideoStart)/totalImp 
+    //document.getElementById('engagementRate').textContent = (engagementRate);
+    let spend = 500
+    document.getElementById('spend').textContent = `₦${spend}`;
+  
+    document.getElementById('campaignStatus').textContent = metrics.campaignStatus || 'LIVE';
+
+    // Update the average metrics
+    let avgCPM = spend/metrics.totalImp
+    document.getElementById('avgCpm').textContent = `₦${avgCPM.toFixed(2)}`;
+    let avgCpc = spend/metrics.totalClicks
+    document.getElementById('avgCpc').textContent = `₦${avgCpc.toFixed(2)}`;
+    //document.getElementById('billedCpm').textContent = `₦${metrics.billedCPM.toLocaleString()}`;
+
+    // Update the video metrics
+    document.getElementById('videoStart').textContent = metrics.totalVideoStart;
+    document.getElementById('firstQuartile').textContent = metrics.totalFirstQuartile || 0;
+    document.getElementById('midpoint').textContent = metrics.totalMidpoint || 0;
+    document.getElementById('thirdQuartile').textContent = metrics.totalThirdQuartile || 0;
+    document.getElementById('completion').textContent = metrics.totalCompleted || 0;
+    document.getElementById('pause').textContent = metrics.totalPause || 0;
+    document.getElementById('unmute').textContent = metrics.totalUnmute || 0;
+      let engagementRate = (metrics.totalUnmute + metrics.totalClicks + metrics.totalPause + metrics.totalVideoStart)/metrics.totalImp 
+    document.getElementById('engagementRate').textContent = (engagementRate).toFixed(2);
+}
+
+// Fetch the data when the page loads
+ fetchAggregatedData();
+
+
+</script>
+</html>
+
+
+</script>
+</html>

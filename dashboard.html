@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Campaign</title>
+    <link rel="stylesheet" href="newstyles.css"> <!-- Link to external CSS file -->
+     <script>
+ // When user tries to access a protected page, check token validity
+function checkLogin() {
+    const token = localStorage.getItem('auth_token');
+    if (!token || isTokenExpired()) {
+        // If no token or token is expired, redirect to login page
+        window.location.href = 'index.html';
+    }
+}
+
+// Call this function on protected pages (e.g., dashboard)
+checkLogin();
+
+</script>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header">
+        <!-- Logo -->
+        <div class="logo">
+            <img src="./assets/dtdtdtd.png" alt="Digital Tribe Logo">
+        </div>
+    </div>
+    
+    <div class="header">
+        <h1>Select a Campaign</h1>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <!-- Cards Section -->
+    <div class="card-container">
+        <div class="card" onclick="goToDashboard('5Alive')">
+            <img src="./assets/image.png" alt="5Alive">
+            <h3>Algorithm - 5Alive</h3>
+        </div>
+        <div class="card" onclick="goToDashboard('Coke')">
+            <img src="./assets/image.png" alt="Coke">
+            <h3>Algorithm - Coke</h3>
+        </div>
+        <div class="card" onclick="goToDashboard('Fanta')">
+            <img src="./assets/image.png" alt="Fanta">
+            <h3>Algorithm - Fanta</h3>
+        </div>
+        <div class="card" onclick="goToDashboard('Sprite')">
+            <img src="./assets/image.png" alt="Sprite">
+            <h3>Algorithm - Sprite</h3>
+        </div>
+        <div class="card" onclick="goToDashboard('Schweppes')">
+            <img src="./assets/image.png" alt="Schweppes">
+            <h3>Algorithm - Schweppes</h3>
+        </div>
+        <div class="card" onclick="goToDashboard('TOLARAM')">
+            <img src="assets/image.png" alt="Tolaram">
+            <h3>TOLARAM</h3>
+        </div>
+        <div class="card" onclick="goToDashboard('TOLARAM2')">
+            <img src="assets/image.png" alt="Tolaram2">
+            <h3>TOLARAM2</h3>
+        </div>
+        <div class="card" onclick="goToDashboard('Zabira')">
+            <img src="assets/image.png" alt="Zabira">
+            <h3>Zabira</h3>
+        </div>
+    </div>
+
+    <script>
+        // Redirect to dashboard with selected campaign
+        function goToDashboard(campaign) {
+            localStorage.setItem('selectedCampaign', campaign);
+            window.location.href = 'dashboard.html'; // Replace with your dashboard page
+        }
+
+        function logout() {
+            window.location.href = 'index.html'; // Replace with your login page
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
